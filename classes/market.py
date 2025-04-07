@@ -73,7 +73,7 @@ class Market:
             'returns': returns,
             'esg': esg_scores,
             'mu': self.mu,
-            'alpha_esg': self.alpha,
+            'alpha': self.alpha,
             'risk_free_rate': 0.0,  # or set your desired risk-free rate
             'cov_returns': self.full_cov[:self.N, :self.N],
             'cov_esg': self.full_cov[self.N:, self.N:],
