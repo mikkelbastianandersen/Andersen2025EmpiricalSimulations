@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "portfolio-simulation"
+version = "0.1.0"
+description = "Simulation of optimal portfolio choice with ESG impact"
+authors = ["Mikkel Andersen <mikkel694@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "classes" }]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.23"
+matplotlib = "^3.8"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
