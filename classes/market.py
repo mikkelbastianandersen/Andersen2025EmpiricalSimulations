@@ -3,7 +3,7 @@
 import numpy as np
 
 class Market:
-    def __init__(self, assets, corr_returns, corr_esg, corr_cross, dt=1/252):
+    def __init__(self, assets, corr_cross, dt=1/252):
         self.assets = assets
         self.asset_names = [asset.name for asset in assets]
         self.N = len(assets)
@@ -12,7 +12,7 @@ class Market:
 
         # Parameters
         self.mu = np.array([asset.mu for asset in assets])
-        self.sigma = np.array([asset.sigma for asset in assets])
+        self.sigma = np.matrix([asset.sigma for asset in assets])
 
         self.alpha = np.array([asset.alpha for asset in assets])
         self.beta = np.array([asset.beta for asset in assets])

@@ -5,6 +5,7 @@ from classes.market import Market
 from classes.portfolios import Portfolio
 from classes.agents import Agent
 from classes.utilities import ExponentialUtility, CRRAUtility
+from classes.simulation import Simulation
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,74 +14,61 @@ import matplotlib.pyplot as plt
 np.random.seed(42)
 
 # --- Define assets ---
-asset1 = Asset(name='Asset1', mu=0.05, sigma=0.2, alpha=0.01, beta=0.05)
-asset2 = Asset(name='Asset2', mu=0.07, sigma=0.25, alpha=-0.005, beta=0.03)
+asset1 = Asset(name='Asset1', mu=0.05, sigma=np.array([0.2,0.4]), alpha=0.01, beta=np.array([0.2,0.4]))
+asset2 = Asset(name='Asset2', mu=0.07, sigma=np.array([0.3,0.3]), alpha=-0.005, beta=np.array([0.3,0.3]))
 
 assets = [asset1, asset2]
 
-# --- Correlation matrices ---
-corr_returns = np.array([[1.0, 0.8],
-                         [0.8, 1.0]])
-
-corr_esg = np.array([[1.0, 0.4],
-                     [0.4, 1.0]])
-
+# --- Correlation matrix for the two standard Brownian motions ---
 corr_cross = np.array([[0.3, -0.2],
                        [0.1, 0.4]])
 
 # --- Initialize market ---
 market = Market(
     assets=assets,
-    corr_returns=corr_returns,
-    corr_esg=corr_esg,
     corr_cross=corr_cross,
     dt=1/252
 )
 
-# --- Initialize utility function ---
-# You can switch between ExponentialUtility() or CRRAUtility()
-utility_function = ExponentialUtility()
-# utility_function = CRRAUtility()
 
-# --- Initialize agent ---
-agent = Agent(
+# --- Initialize agent(s) ---
+agent1 = Agent(
     initial_wealth=1000,
     risk_aversion=3,
     esg_preference=1,
-    utility=utility_function
+    utility=ExponentialUtility()
 )
 
-# --- Initialize portfolio ---
-initial_allocations = {asset.name: 0.5 for asset in assets}  # equal weights
-agent.portfolio = Portfolio(assets=assets)
-agent.portfolio.update_holdings(initial_allocations)
+agent2 = Agent(
+    initial_wealth=1000,
+    risk_aversion=3,
+    esg_preference=1,
+    utility=ExponentialUtility()
+)
+
+agents = [agent1, agent2]
 
 # --- Simulation settings ---
 num_steps = 252  # one year
 
-# --- Storage for results ---
-wealth_over_time = []
-esg_impact_over_time = []
-prices_over_time = {asset.name: [] for asset in assets}
 
-# --- Run simulation ---
-for step in range(num_steps):
-    state = market.get_state()
+# --- Run market simulation ---
+sim = Simulation(market=market, agents=agents, num_steps=num_steps)
+sim_result = sim.run()
+# --- Extract results ---
+wealth_over_time = sim_result['wealth_over_time']
+esg_impact_over_time = sim_result['esg_impact_over_time']
+# --- Plot settings ---
+plt.style.use('seaborn-darkgrid')
+plt.rcParams['figure.figsize'] = (12, 6)
+plt.rcParams['axes.titlesize'] = 14
+plt.rcParams['axes.labelsize'] = 12
+plt.rcParams['xtick.labelsize'] = 10
+plt.rcParams['ytick.labelsize'] = 10
+plt.rcParams['legend.fontsize'] = 10
 
-    # Agent optimizes portfolio using injected utility function
-    agent.optimize_portfolio(state)
-
-    # Agent updates wealth and ESG impact
-    agent.update(state)
-
-    # Record results
-    wealth_over_time.append(agent.wealth)
-    esg_impact_over_time.append(agent.esg_impact)
-    for asset in assets:
-        prices_over_time[asset.name].append(market.prices[assets.index(asset)])
 
 # --- Plot results ---
-
 time = np.arange(num_steps)
 
 plt.figure(figsize=(12, 5))
