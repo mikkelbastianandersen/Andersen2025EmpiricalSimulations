@@ -1,7 +1,7 @@
 import numpy as np
 
 class Market:
-    def __init__(self, mu_t, sigma_t, alpha_t, beta_t, rho_t, r , num_steps, dt=1/252):
+    def __init__(self, mu_t, sigma_t, alpha_t, beta_t, rho_t, r ,agents, num_steps, dt=1/252):
         self.dt = dt
         self.mu_t = mu_t
         self.sigma_t = sigma_t
@@ -9,6 +9,7 @@ class Market:
         self.beta_t = beta_t
         self.rho_t = rho_t
         self.r = r
+        self.agents = agents
 
         self.N = len(mu_t)
         self.K = len(sigma_t)
@@ -33,6 +34,9 @@ class Market:
         return z,w
 
     def step(self):
+        for agent in self.agents:
+            agent.decide_portfolio(market_state=self)
+            
         # Generate correlated shocks for returns and ESG
         z,w = self.generate_shocks()
 
@@ -46,6 +50,10 @@ class Market:
         
         # Make sure the price is not negative
         self.prices[:,self.current_step + 1] = np.maximum(self.prices[:,self.current_step + 1], 1e-6)
+
+        for agent in self.agents:
+            agent.wealth *= (1 + agent.weights @ returns + (1-sum(agent.weights))*self.r) # Remember risk free
+            agent.esg_impact += agent.weights @ esg_addition
 
         self.current_step += 1
 

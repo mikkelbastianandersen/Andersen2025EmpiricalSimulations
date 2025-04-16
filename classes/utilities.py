@@ -14,15 +14,16 @@ class ExponentialUtility:
         alpha = market_state.alpha_t
         sigma = market_state.sigma_t
         beta = market_state.beta_t
+        rho = market_state.rho_t
         r = market_state.r
 
         Sigma_W = sigma @ sigma.T
         Sigma_Z = beta @ beta.T
-        Sigma_WZ = sigma @ beta.T
+        Sigma_WZ = sigma @ rho @ beta.T
 
         M = (a ** 2) * Sigma_W + (d ** 2) * Sigma_Z + 2 * a * d * Sigma_WZ
         M_inv = np.linalg.inv(M)
         target = a * (mu - r) + d * alpha
-        weights = -1/wealth * M_inv @ target
+        weights = 1/wealth * M_inv @ target
 
         return weights
