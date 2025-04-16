@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from classes.assets import Asset
 from classes.agents import Agent
 from classes.portfolios import Portfolio
 from classes.utilities import ExponentialUtility
@@ -11,33 +10,32 @@ from classes.simulation import Simulation
 # --- Reproducibility ---
 np.random.seed(42)
 
-# --- Define Assets ---
-asset1 = Asset(name='Asset1', mu_0=0.05, sigma=np.array([0.2, 0.4]), alpha=0.01, beta=np.array([0.05, 0.02]))
-asset2 = Asset(name='Asset2', mu_0=0.07, sigma=np.array([0.3, 0.1]), alpha=-0.005, beta=np.array([0.03, 0.01]))
-assets = [asset1, asset2]
+num_steps = 1000
 
 # --- Define Market ---
-corr_cross = np.array([
+mu_0 = np.array([0.05, 0.07])
+sigma_0 = np.array([[0.2, 0.3], [0.3, 0.4]])
+alpha_0 = np.array([0.01, -0.005])
+beta_0 = np.array([[0.05, 0.03], [0.02, 0.01]])
+
+rho_0 = np.array([
     [0.3, -0.2],
     [0.1, 0.4]
 ])
-market = Market(assets=assets, corr_cross=corr_cross, lambda_esg=0.5, dt=1/252)
+market = Market(mu_t=mu_0, sigma_t=sigma_0, alpha_t=alpha_0, beta_t=beta_0, rho_t=rho_0, r= 0, num_steps=num_steps, dt=1/1000)
 
 # --- Define Agents ---
-agent1 = Agent(name='Agent1', initial_wealth=1000, risk_aversion=3, esg_preference=1, utility=ExponentialUtility())
-agent2 = Agent(name='Agent2', initial_wealth=1000, risk_aversion=2, esg_preference=2, utility=ExponentialUtility())
+agent1 = Agent(name='Agent1', initial_wealth=1000, utility=ExponentialUtility(risk_aversion=0.01, esg_preference=2))
+agent2 = Agent(name='Agent2', initial_wealth=1000, utility=ExponentialUtility(risk_aversion=0.1, esg_preference=3))
 
-# --- Assign Portfolios ---
-agent1.portfolio = Portfolio(assets)
-agent2.portfolio = Portfolio(assets)
 agents = [agent1, agent2]
 
 # --- Run Simulation ---
-simulation = Simulation(market=market, agents=agents, num_steps=10000)
+simulation = Simulation(market=market, agents=agents, num_steps=num_steps)
 wealth, esg = simulation.run()
 
 # --- Plot Results ---
-time = np.arange(10000)
+time = np.arange(num_steps)
 
 plt.figure(figsize=(12, 5))
 

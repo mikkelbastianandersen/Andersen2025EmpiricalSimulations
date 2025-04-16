@@ -1,59 +1,62 @@
 import numpy as np
 
 class Market:
-    def __init__(self, mu_t, sigma_t, alpha_t, beta_t, rho_t, dt=1/252):
+    def __init__(self, mu_t, sigma_t, alpha_t, beta_t, rho_t, r , num_steps, dt=1/252):
         self.dt = dt
         self.mu_t = mu_t
         self.sigma_t = sigma_t
         self.alpha_t = alpha_t
         self.beta_t = beta_t
         self.rho_t = rho_t
+        self.r = r
 
         self.N = len(mu_t)
         self.K = len(sigma_t)
+        self.num_steps = num_steps
 
-        self.esg = np.zeros(self.N)
-        self.prices = np.ones(self.N)
+        self.esg = np.zeros((self.N,self.num_steps))
+        self.prices = np.ones((self.N,self.num_steps))
 
-    def build_joint_loading(self):
-        I = np.eye(self.alpha_tN)
+        self.current_step = 0
+
+    def generate_shocks(self):
+        I = np.eye(self.N)
         joint_corr = np.block([
             [I,        self.rho_t],
             [self.rho_t.T,  I     ]
         ])  # shape (2N, 2N)
-        L = np.linalg.cholesky(joint_corr)
-        return L
-
-    def step(self):
-        # Generate correlated shocks for returns and ESG
-        L = self.build_joint_loading()
+        L = np.linalg.cholesky(joint_corr)        
         stand_norms = np.random.randn(2 * self.N)
         joint_shocks = L @ stand_norms
         z = joint_shocks[:self.N]
         w = joint_shocks[self.N:]
+        return z,w
 
-        # Save previous prices and ESG for return calculation
-        esg_before = self.esg.copy()
-        prices_before = self.prices.copy()
+    def step(self):
+        # Generate correlated shocks for returns and ESG
+        z,w = self.generate_shocks()
 
-        # Update ESG for each asset
-        self.esg += self.alpha * self.dt + np.sqrt(self.dt) * self.beta_t @ w
-
-        # Update prices for each asset
+        # Compute returns and ESG impacts
         returns = self.mu_t * self.dt + np.sqrt(self.dt) * self.sigma_t @ z
-        self.prices *= returns
-        self.prices = np.maximum(self.prices, 1e-6)
+        esg_addition = self.alpha_t * self.dt + np.sqrt(self.dt) * self.beta_t @ w
 
-        # Update \mu_t
-        mu = self.mu_t + np.random.randn(self.N)
+        # Update the esg and price matrices
+        self.esg[:,self.current_step + 1] = self.esg[:,self.current_step] + esg_addition
+        self.prices[:,self.current_step + 1] = self.prices[:,self.current_step] * (1 + returns)
         
+        # Make sure the price is not negative
+        self.prices[:,self.current_step + 1] = np.maximum(self.prices[:,self.current_step + 1], 1e-6)
 
-        return {
-            'returns': returns,
-            'esg': self.esg,
-            'mu': mu,
-            'alpha': self.alpha,
-            'sigma': self.sigma,
-            'beta': self.beta,
-            'risk_free_rate': 0.0
-        }
+        self.current_step += 1
+
+        return self
+    def update_beliefs(self):
+        # Update beliefs based on the current state of the market
+        # For now we keep the beliefs constant, but will be changed later
+        self.mu_t = self.mu_t
+        self.sigma_t = self.sigma_t
+        self.alpha_t = self.alpha_t
+        self.beta_t = self.beta_t
+        self.rho_t = self.rho_t
+
+

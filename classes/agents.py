@@ -1,20 +1,18 @@
 class Agent:
-    def __init__(self, name, initial_wealth, risk_aversion, esg_preference, utility):
+    def __init__(self, name, initial_wealth, utility):
         self.name = name
         self.wealth = initial_wealth
-        self.risk_aversion = risk_aversion
-        self.esg_preference = esg_preference
-        self.utility = utility
-        self.portfolio = None
         self.esg_impact = 0
+        self.utility = utility
+        self.weights = None
 
     def decide_portfolio(self, market_state):
         optimal_weights = self.utility.optimal_portfolio(self, market_state)
-        self.portfolio.update_holdings(optimal_weights)
+        self.weights = optimal_weights
 
-    def update(self, market_state):
-        returns = market_state['returns']
-        esg_scores = market_state['esg']
+    def update_wealth(self, market):
+        returns = market.prices[:,market.current_step + 1]
+        esg_scores = market.esg
 
         portfolio_return = self.portfolio.calculate_return(returns)
         portfolio_esg = self.portfolio.calculate_esg(esg_scores)
