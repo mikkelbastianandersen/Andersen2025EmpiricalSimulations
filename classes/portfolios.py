@@ -1,13 +1,15 @@
-# portfolio.py
+
 class Portfolio:
     def __init__(self, assets):
-        self.holdings = {asset.name: 0 for asset in assets}
+        self.assets = assets
+        self.holdings = {asset.name: 0.0 for asset in assets}
 
-    def update_holdings(self, new_allocations):
-        self.holdings.update(new_allocations)
+    def update_holdings(self, allocations):
+        for i, asset in enumerate(self.assets):
+            self.holdings[asset.name] = allocations[i]
 
-    def calculate_value(self, returns):
-        return sum(weight * returns[name] for name, weight in self.holdings.items())
+    def calculate_return(self, returns):
+        return sum(weight * returns[i] for i, weight in enumerate(self.holdings.values()))
 
-    def esg_impact(self, esg_scores):
-        return sum(weight * esg_scores[name] for name, weight in self.holdings.items())
+    def calculate_esg(self, esg_scores):
+        return sum(weight * esg_scores[i] for i, weight in enumerate(self.holdings.values()))

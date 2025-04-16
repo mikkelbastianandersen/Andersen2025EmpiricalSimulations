@@ -1,91 +1,59 @@
-# market.py
-
 import numpy as np
 
 class Market:
-    def __init__(self, assets, corr_cross, dt=1/252):
-        self.assets = assets
-        self.asset_names = [asset.name for asset in assets]
-        self.N = len(assets)
+    def __init__(self, mu_t, sigma_t, alpha_t, beta_t, rho_t, dt=1/252):
         self.dt = dt
-        self.time = 0
+        self.mu_t = mu_t
+        self.sigma_t = sigma_t
+        self.alpha_t = alpha_t
+        self.beta_t = beta_t
+        self.rho_t = rho_t
 
-        # Parameters
-        self.mu = np.array([asset.mu for asset in assets])
-        self.sigma = np.matrix([asset.sigma for asset in assets])
+        self.N = len(mu_t)
+        self.K = len(sigma_t)
 
-        self.alpha = np.array([asset.alpha for asset in assets])
-        self.beta = np.array([asset.beta for asset in assets])
-
-        # Initial values
+        self.esg = np.zeros(self.N)
         self.prices = np.ones(self.N)
-        self.esg_impacts = np.zeros(self.N)
 
-        # Build the full covariance matrix
-        cov_returns = self._correlation_to_covariance(corr_returns, self.sigma)
-        cov_esg = self._correlation_to_covariance(corr_esg, np.ones(self.N))  # BM has unit volatility
-        cov_cross = self._build_cross_covariance(corr_cross, self.sigma)
+    def build_joint_loading(self):
+        I = np.eye(self.alpha_tN)
+        joint_corr = np.block([
+            [I,        self.rho_t],
+            [self.rho_t.T,  I     ]
+        ])  # shape (2N, 2N)
+        L = np.linalg.cholesky(joint_corr)
+        return L
 
-        # Assemble full covariance matrix
-        self.full_cov = np.block([
-            [cov_returns, cov_cross],
-            [cov_cross.T, cov_esg]
-        ])
-        self.full_cov = ensure_psd(self.full_cov)
-        self.L = np.linalg.cholesky(self.full_cov)
+    def step(self):
+        # Generate correlated shocks for returns and ESG
+        L = self.build_joint_loading()
+        stand_norms = np.random.randn(2 * self.N)
+        joint_shocks = L @ stand_norms
+        z = joint_shocks[:self.N]
+        w = joint_shocks[self.N:]
 
-    def _correlation_to_covariance(self, corr, stddevs):
-        return np.outer(stddevs, stddevs) * corr
+        # Save previous prices and ESG for return calculation
+        esg_before = self.esg.copy()
+        prices_before = self.prices.copy()
 
-    def _build_cross_covariance(self, corr_cross, stddevs_returns):
-        return np.outer(stddevs_returns, np.ones(self.N)) * corr_cross
+        # Update ESG for each asset
+        self.esg += self.alpha * self.dt + np.sqrt(self.dt) * self.beta_t @ w
 
+        # Update prices for each asset
+        returns = self.mu_t * self.dt + np.sqrt(self.dt) * self.sigma_t @ z
+        self.prices *= returns
+        self.prices = np.maximum(self.prices, 1e-6)
 
-    def evolve_market(self):
-        # Generate uncorrelated normals
-        Z = np.random.normal(0, 1, size=2 * self.N)
-
-        # Correlated shocks
-        correlated_Z = self.L @ Z
-
-        # Split shocks
-        Z_returns = correlated_Z[:self.N]
-        Z_esg = correlated_Z[self.N:]
-
-        # Update prices (GBM)
-        drift = (self.mu - 0.5 * self.sigma ** 2) * self.dt
-        diffusion = self.sigma * np.sqrt(self.dt) * Z_returns
-        self.prices *= np.exp(drift + diffusion)
-
-        # Prepare returns as percentage changes
-        returns = {name: change for name, change in zip(self.asset_names, np.exp(drift + diffusion) - 1)}
-
-        # Update ESG impacts (standard BM)
-        self.esg_impacts += (
-            self.alpha * self.dt +
-            self.beta * np.sqrt(self.dt) * Z_esg
-        )
-        esg_scores = {name: impact for name, impact in zip(self.asset_names, self.esg_impacts)}
-
-        self.time += 1
+        # Update \mu_t
+        mu = self.mu_t + np.random.randn(self.N)
+        
 
         return {
             'returns': returns,
-            'esg': esg_scores,
-            'mu': self.mu,
+            'esg': self.esg,
+            'mu': mu,
             'alpha': self.alpha,
-            'risk_free_rate': 0.0,  # or set your desired risk-free rate
-            'cov_returns': self.full_cov[:self.N, :self.N],
-            'cov_esg': self.full_cov[self.N:, self.N:],
-            'cov_cross': self.full_cov[:self.N, self.N:]
+            'sigma': self.sigma,
+            'beta': self.beta,
+            'risk_free_rate': 0.0
         }
-
-    def get_state(self):
-        return self.evolve_market()
-
-
-def ensure_psd(matrix, tol=1e-8):
-    """Ensure the matrix is positive semidefinite."""
-    eigvals, eigvecs = np.linalg.eigh(matrix)
-    eigvals[eigvals < tol] = tol  # set small/negative eigenvalues to threshold
-    return eigvecs @ np.diag(eigvals) @ eigvecs.T

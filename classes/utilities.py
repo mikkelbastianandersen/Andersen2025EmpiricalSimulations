@@ -1,48 +1,26 @@
 import numpy as np
 
 class ExponentialUtility:
-    def optimal_portfolio(self, market_state, agent):
-        a_j = agent.risk_aversion
-        d_j = agent.esg_preference
+    def optimal_portfolio(self, agent, market_state):
+        a = agent.risk_aversion
+        d = agent.esg_preference
         wealth = agent.wealth
 
         mu = market_state['mu']
         alpha = market_state['alpha']
-        r = market_state['risk_free_rate']
+        sigma = market_state['sigma']
+        beta = market_state['beta']
 
-        Sigma_W = market_state['cov_returns']
-        Sigma_Z = market_state['cov_esg']
-        Sigma_WZ = market_state['cov_cross']
+        Sigma_W = sigma @ sigma.T
+        Sigma_Z = beta @ beta.T
+        Sigma_WZ = sigma @ beta.T
 
-        M = (a_j ** 2) * Sigma_W + (d_j ** 2) * Sigma_Z + 2 * a_j * d_j * Sigma_WZ
-        excess_return = mu - r
-        target_vector = a_j * excess_return + d_j * alpha
-
-        try:
-            optimal_allocation = np.linalg.solve(M, target_vector) / wealth
-        except np.linalg.LinAlgError:
-            optimal_allocation = np.zeros_like(mu)
-
-        return optimal_allocation
-    
-
-class CRRAUtility:
-    def optimal_portfolio(self, market_state, agent):
-        # Example logic for CRRA utility (depends on your formula!)
-        gamma = agent.risk_aversion
-        wealth = agent.wealth
-
-        mu = market_state['mu']
-        r = market_state['risk_free_rate']
-        Sigma_W = market_state['cov_returns']
-
-        excess_return = mu - r
+        M = (a ** 2) * Sigma_W + (d ** 2) * Sigma_Z + 2 * a * d * Sigma_WZ
+        target = a * (mu - market_state['risk_free_rate']) + d * alpha
 
         try:
-            optimal_allocation = (1 / gamma) * np.linalg.solve(Sigma_W, excess_return)
+            weights = np.linalg.solve(M, target) / wealth
         except np.linalg.LinAlgError:
-            optimal_allocation = np.zeros_like(mu)
+            weights = np.zeros_like(mu)
 
-        return optimal_allocation
-
-
+        return weights
