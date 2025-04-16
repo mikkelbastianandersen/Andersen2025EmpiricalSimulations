@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from classes.agents import Agent
 from classes.portfolios import Portfolio
-from classes.utilities import ExponentialUtility
+from classes.utilities import ExponentialUtility, LogLogUtility
 from classes.market import Market
 from classes.simulation import Simulation
 
@@ -13,15 +13,15 @@ np.random.seed(42)
 num_steps = 1000
 
 # --- Define Agents ---
-agent1 = Agent(name='Agent1', initial_wealth=1, utility=ExponentialUtility(risk_aversion=0.1, esg_preference=0))
+agent1 = Agent(name='Agent1', initial_wealth=1, utility=LogLogUtility(esg_preference=1))
 agent2 = Agent(name='Agent2', initial_wealth=1, utility=ExponentialUtility(risk_aversion=0.1, esg_preference=3))
 agents = [agent1, agent2]
 
 # --- Define Market ---
 mu_0 = np.array([0.05, 0.07])
 sigma_0 = np.array([[0.2, 0.3], [0.3, 0.4]])
-alpha_0 = np.array([0.01, -0.005])
-beta_0 = np.array([[0.05, 0.03], [0.02, 0.01]])
+alpha_0 = np.array([0.01, 0.008])
+beta_0 = np.array([[0.1, 0.2], [0.02, 0.01]])
 
 rho_0 = np.array([
     [0.3, -0.2],
