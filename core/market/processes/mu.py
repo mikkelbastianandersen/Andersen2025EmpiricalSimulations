@@ -1,4 +1,4 @@
-from core.processes.process import ParameterProcess
+from core.market.processes.process import ParameterProcess
 
 
 class MuProcess(ParameterProcess):

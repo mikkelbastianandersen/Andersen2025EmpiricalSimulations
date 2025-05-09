@@ -4,6 +4,7 @@ import numpy as np
 T = 1000  # Number of time steps
 dt = 1 / 252  # Daily time steps (approx. 252 trading days/year)
 n_assets = 10
+r = 0.05
 
 # Initial risky asset prices and ESG impacts
 S0 = np.ones(n_assets) * 100.0
