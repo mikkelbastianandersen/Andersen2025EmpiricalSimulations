@@ -1,2 +1,5 @@
-# Andersen2025EmpiricalSimulations
-Empirical simulations for my master's thesis in Mathematics-Economics
+## Test readme
+
+Portfolio exploration is found by running explort_portfolio_params.py
+
+Agent simulation is found by running main.py
